@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+'''  
+author: shenzhiwei
+date:   2016-04-18 09:35:59   
+'''
+
+
 from __future__ import unicode_literals
 from optparse import OptionParser
 import etcd
