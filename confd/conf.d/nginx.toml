@@ -1,0 +1,8 @@
+[template]
+src = "nginx.conf.tmpl"
+dest = "/etc/nginx/conf.d/test.conf"
+keys = [
+  "/services/web"
+]
+reload_cmd = "systemctl reload nginx"
+

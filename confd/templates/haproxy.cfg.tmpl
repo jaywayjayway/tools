@@ -1,35 +1,3 @@
-#  simple tools
-
--  tcp_check
--  domainctl
-
-##  nginx template 
-```
-{{range $dir := lsdir "/services/web"}}
-upstream {{base $dir}} {
-    {{$custdir := printf "/services/web/%s/*" $dir}}{{range gets $custdir}}
-    server {{.Value}}:8888; {{end}}
-}
-
-server {
-    listen      80;
-    server_name {{base $dir}};
-    access_log   /var/log/nginx/{{base $dir}}_access_log;
-    error_log    /var/log/ngin/{{base $dir}}_error_log;
-    location / {
-        proxy_pass {{base $dir}};
-            proxy_set_header   Host             $host;
-            proxy_set_header   X-Real-IP        $remote_addr;
-            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
-            proxy_set_header Via    "nginx";
-
-    }
-}
-{{end}}
-
-```
-###  haproxy  tempalte
-```
 
 global
     log         127.0.0.1 local2  info
@@ -70,6 +38,11 @@ frontend main *:5000
         use_backend   {{base $dir}}  if  {{base $dir}}
 {{end}}
 
+#######################################################################
+##    acl  is_pay.quakegame.cn    hdr_beg(host)   -i pay.quakegame.cn #
+##    use_backend pay.kuakegame.cn  if is_pay.quakegame.cn            #
+#######################################################################
+
 backend  static
    balance     roundrobin
    server   images   10.10.0.3:80 check 
@@ -83,11 +56,6 @@ backend  {{base $dir }}
     server  {{base .Key}}  {{.Value}}:8888 check
    {{end}}
 {{end}}
-
-
-
-```
-
 
 
 

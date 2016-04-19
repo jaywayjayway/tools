@@ -1,0 +1,8 @@
+[template]  
+src = "haproxy.cfg.tmpl"  
+dest = "/etc/haproxy/haproxy.cfg"  
+keys = [  
+  "/service/",  
+  "/services/",  
+]  
+reload_cmd = "systemctl reload haproxy"  

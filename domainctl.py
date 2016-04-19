@@ -4,8 +4,6 @@
 author: shenzhiwei
 date:   2016-04-18 09:35:59   
 '''
-
-
 from __future__ import unicode_literals
 from optparse import OptionParser
 import etcd
@@ -44,7 +42,7 @@ class Etcd(object):
         domain_info = info 
         for _k,_v  in domain_info.items():
             ip_list = _v.split(',')
-            if  len(_k.split('/')) > 1 :  ###  example   gm.quakegame.cn/server0 
+            if  len(_k.split('/')) > 1 :  ###  example   gm.quakegame.cn/server0 ###
                try:
                   _out = client.read('/services/web/%s'%(_k))
                   _out.value = ip_list[0]
