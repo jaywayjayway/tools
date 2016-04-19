@@ -102,7 +102,9 @@ optional arguments:
                         add domain ,example: -i 'gm.quakegame.test
                         1.1.1.1,2.2.2.2; oa.quakegame.cn 3.3.3.3,4,4,4,4'
 ```
-#domainctl -d all
+```
+# domainctl -d all
+
 {
   "message": {
     "/services/web/gm.quakegame.cn": {
