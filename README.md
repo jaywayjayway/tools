@@ -84,10 +84,54 @@ backend  {{base $dir }}
    {{end}}
 {{end}}
 
-
-
 ```
 
+- doaminctl help 
+```
+#domainctl  -h 
+usage: domainctl [-h] [-H HOST] [-p PORT] [-d DOMAIN | -D NAME | -i INSERT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -H HOST, --host HOST  etcd server ipaddress.[default:127.0.0.1]
+  -p PORT, --port PORT  etcd listen port.[default:2379]
+  -d DOMAIN, --domain DOMAIN
+                        show domain infomation,[ALL|all] show all domains
+  -D NAME, --name NAME  Delete Domain, exaple: -D oa.quakegame.cn
+  -i INSERT, --insert INSERT
+                        add domain ,example: -i 'gm.quakegame.test
+                        1.1.1.1,2.2.2.2; oa.quakegame.cn 3.3.3.3,4,4,4,4'
+```
+#domainctl -d all
+{
+  "message": {
+    "/services/web/gm.quakegame.cn": {
+      "server0": "10.10.0.3",
+      "server1": "10.10.0.4"
+    },
+    "/services/web/awr.docm.dfas": {
+      "server0": "234.23.3.3"
+    },
+    "/services/web/oa.quakegame.cn": {
+      "server0": "2.2.2.2"
+    },
+    "/services/web/jaywaychou.com": {
+      "server0": "10.10.0.3",
+      "server1": "10.10.0.4"
+    },
+    "/services/web/xiaofuge.com": {
+      "server0": "10.10.0.3",
+      "server1": "10.10.0.3"
+    },
+    "/services/web/pay.quakegame.cn": {
+      "server0": "10.10.0.3",
+      "server1": "10.10.0.4"
+    }
+  },
+  "code": 200
+}
+
+```
 
 
 
