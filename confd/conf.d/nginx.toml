@@ -1,8 +1,9 @@
 [template]
 src = "nginx.conf.tmpl"
-dest = "/etc/nginx/conf.d/test.conf"
+dest = "/etc/nginx/conf.d/lb.conf"
 keys = [
-  "/services/web"
+  "/services"
 ]
+check_cmd = "/usr/sbin/nginx -t"
 reload_cmd = "systemctl reload nginx"
 

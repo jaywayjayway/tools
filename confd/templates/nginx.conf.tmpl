@@ -1,23 +1,34 @@
-{{range $dir := lsdir "/services/web"}}
-upstream {{base $dir}} {
-    {{$custdir := printf "/services/web/%s/*" $dir}}{{range gets $custdir}}
-    server {{.Value}}:8888; {{end}}
+{{range $_dir := lsdir  "/services"}}
+{{$service_dir  := printf  "/services/%s" $_dir}} 
+    {{range $business_dir := lsdir  $service_dir}}
+        {{$domain_dir := printf "%s/%s/"  $service_dir $business_dir}}
+        {{range $name  := lsdir  $domain_dir}}
+
+        {{$server := printf "%s/%s/%s/*" $service_dir $business_dir  $name}}
+        
+upstream  {{$name}} {
+ {{range gets $server}}
+    server {{.Value}}:4001; 
+        {{end}}
 }
 
 server {
-    listen      80;
-    server_name {{base $dir}};
-    access_log   /var/log/nginx/{{base $dir}}_access_log;
-    error_log    /var/log/ngin/{{base $dir}}_error_log;
+    listen     5001; 
+    server_name {{$name}};
     location / {
-        proxy_pass {{base $dir}};
+        proxy_pass http://{{$name}};
             proxy_set_header   Host             $host;
             proxy_set_header   X-Real-IP        $remote_addr;
             proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
             proxy_set_header Via    "nginx";
-
     }
 }
+
+        {{end}}
+    {{end}}
 {{end}}
+
+
+
 
 

@@ -3,32 +3,8 @@
 -  tcp_check
 -  domainctl
 
-##  nginx template 
-```
-{{range $dir := lsdir "/services/web"}}
-upstream {{base $dir}} {
-    {{$custdir := printf "/services/web/%s/*" $dir}}{{range gets $custdir}}
-    server {{.Value}}:8888; {{end}}
-}
 
-server {
-    listen      80;
-    server_name {{base $dir}};
-    access_log   /var/log/nginx/{{base $dir}}_access_log;
-    error_log    /var/log/ngin/{{base $dir}}_error_log;
-    location / {
-        proxy_pass {{base $dir}};
-            proxy_set_header   Host             $host;
-            proxy_set_header   X-Real-IP        $remote_addr;
-            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
-            proxy_set_header Via    "nginx";
-
-    }
-}
-{{end}}
-
-```
-###  haproxy  tempalte
+## haproxy  template 
 ```
 
 global
@@ -60,78 +36,166 @@ defaults
     timeout check           10s
     maxconn                 3000
 
+frontend etcd
+    bind 192.168.0.16:2379
+    mode tcp
+    option tcplog
+    default_backend etcd
+    log 127.0.0.1 local3
+
 frontend main *:5000
         acl url_static       path_beg       -i /static /images /javascript /stylesheets
         acl url_static       path_end       -i .jpg .gif .png .css .js
         use_backend static          if url_static
-
-{{range $dir := lsdir "/services/web"}}
-        acl     {{base $dir}} hdr_beg(host) -i   {{base $dir}} 
-        use_backend   {{base $dir}}  if  {{base $dir}}
+{{range $server_dir := lsdir  "/services"}}
+{{$business_dir  := printf  "/services/%s" $server_dir}}
+{{range $dir := lsdir  $business_dir}}
+    {{$domain_dir := printf "%s/%s/"  $business_dir $dir}}
+    {{range $name  := lsdir   $domain_dir}}
+        acl     {{base $name}} hdr_beg(host) -i   {{base $name}} 
+        use_backend   {{base $name}}  if  {{base $name}}
+    {{end}}
 {{end}}
+{{end}}
+
+backend etcd
+    balance roundrobin
+    fullconn 1024
+    server etcd1 10.10.0.1:2379 check port 2379 inter 300 fall 3
+    server etcd2 10.10.0.3:2379 check port 2379 inter 300 fall 3
+    server etcd3 10.10.0.4:2379 check port 2379 inter 300 fall 3
 
 backend  static
    balance     roundrobin
    server   images   10.10.0.3:80 check 
 
 
+{{range $server_dir := lsdir  "/services"}}
+{{$business_dir  := printf  "/services/%s" $server_dir}}
+{{range $dir := lsdir  $business_dir}}
+    {{$domain_dir := printf "%s/%s/"  $business_dir $dir}}
+    {{range $name  := lsdir   $domain_dir}}
+      {{$server := printf "%s/%s/%s/*" $business_dir $dir $name}}
+backend  {{$name}}        
+    balance   roundrobin
+        {{range gets $server}}
+        server {{base .Key}}  {{.Value}}:4001 check port 4001 inter 300 fall 3
+        {{end}}
+    {{end}}
+{{end}}
+{{end}}
 
-{{range $dir := lsdir "/services/web"}}
-backend  {{base $dir }}
-    balance     roundrobin
-   {{$custdir := printf "/services/web/%s/*" $dir}}{{range gets $custdir}}
-    server  {{base .Key}}  {{.Value}}:8888 check
-   {{end}}
+```
+
+##  nginx (LB) template 
+```
+{{range $_dir := lsdir  "/services"}}
+{{$service_dir  := printf  "/services/%s" $_dir}} 
+    {{range $business_dir := lsdir  $service_dir}}
+        {{$domain_dir := printf "%s/%s/"  $service_dir $business_dir}}
+        {{range $name  := lsdir  $domain_dir}}
+
+        {{$server := printf "%s/%s/%s/*" $service_dir $business_dir  $name}}
+        
+upstream  {{$name}} {
+ {{range gets $server}}
+    server {{.Value}}:4001; 
+        {{end}}
+}
+
+server {
+    listen     5001; 
+    server_name {{$name}};
+    location / {
+        proxy_pass http://{{$name}};
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
+            proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+            proxy_set_header Via    "nginx";
+    }
+}
+
+        {{end}}
+    {{end}}
+{{end}}
+
+
+```
+
+## nginx ( web server ) template 
+```
+{{range $_dir := lsdir  "/services"}}
+{{$service_dir  := printf  "/services/%s" $_dir}} 
+    {{range $business_dir := lsdir  $service_dir}}
+        {{$domain_dir := printf "%s/%s/"  $service_dir $business_dir}}
+        {{range $name  := lsdir  $domain_dir}}
+server {
+   listen      4001;
+   server_name {{base $name}};
+   index index.html default.htm index.htm index.php;
+
+   root  /data/wwwroot/{{base $name}};
+   access_log /var/log/nginx/{{base $name}}-access_log main;
+   include  gameweb.cfg;
+}
+        {{end}}
+    {{end}}
 {{end}}
 
 ```
 
 - doaminctl help 
 ```
-#domainctl  -h 
-usage: domainctl [-h] [-H HOST] [-p PORT] [-d DOMAIN | -D NAME | -i INSERT]
+# domainctl  -h 
+```
+usage: domainctl [-h] [-H HOST] [-p PORT] [-s SERVER] [-b BUSINESS]
+                 [-d DOMAIN | -D NAME | -i INSERT]
 
 optional arguments:
   -h, --help            show this help message and exit
   -H HOST, --host HOST  etcd server ipaddress.[default:127.0.0.1]
   -p PORT, --port PORT  etcd listen port.[default:2379]
+  -s SERVER, --server SERVER
+                        kinds of servers. [default:web]
+  -b BUSINESS, --business BUSINESS
+                        kinds of business. [default:kugou]
   -d DOMAIN, --domain DOMAIN
                         show domain infomation,[ALL|all] show all domains
   -D NAME, --name NAME  Delete Domain, exaple: -D oa.quakegame.cn
   -i INSERT, --insert INSERT
                         add domain ,example: -i 'gm.quakegame.test
                         1.1.1.1,2.2.2.2; oa.quakegame.cn 3.3.3.3,4,4,4,4'
+
+- show all aviable domains 
+
 ```
-```
-# domainctl -d all
+[root@nn1 tools]# domainctl  -d all | jq 
 
 {
   "message": {
-    "/services/web/gm.quakegame.cn": {
+    "/services/web/kugou/pay.kugou.com": {
       "server0": "10.10.0.3",
       "server1": "10.10.0.4"
     },
-    "/services/web/awr.docm.dfas": {
-      "server0": "234.23.3.3"
-    },
-    "/services/web/oa.quakegame.cn": {
-      "server0": "2.2.2.2"
-    },
-    "/services/web/jaywaychou.com": {
+    "/services/web/kugou/gm.kugou.com": {
       "server0": "10.10.0.3",
       "server1": "10.10.0.4"
     },
-    "/services/web/xiaofuge.com": {
-      "server0": "10.10.0.3",
-      "server1": "10.10.0.3"
-    },
-    "/services/web/pay.quakegame.cn": {
+    "/services/web/kugou/api.kugou.com": {
       "server0": "10.10.0.3",
       "server1": "10.10.0.4"
     }
   },
   "code": 200
 }
+
+
+
+```
+- add new domain
+```
+[root@nn1 tools]# domainctl  -b kugou   -i  'game.kugou.com 10.10.0.3,10.10.0.4,10.10.0.5'
+{"message": "set success", "code": 200}
 
 ```
 

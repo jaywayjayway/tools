@@ -2,7 +2,7 @@
 src = "haproxy.cfg.tmpl"  
 dest = "/etc/haproxy/haproxy.cfg"  
 keys = [  
-  "/service/",  
   "/services/",  
 ]  
+check_cmd = "/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -c "
 reload_cmd = "systemctl reload haproxy"  

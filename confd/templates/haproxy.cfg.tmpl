@@ -28,34 +28,57 @@ defaults
     timeout check           10s
     maxconn                 3000
 
+frontend etcd
+    bind 192.168.0.16:2379
+    mode tcp
+    option tcplog
+    default_backend etcd
+    log 127.0.0.1 local3
+
 frontend main *:5000
         acl url_static       path_beg       -i /static /images /javascript /stylesheets
         acl url_static       path_end       -i .jpg .gif .png .css .js
         use_backend static          if url_static
-
-{{range $dir := lsdir "/services/web"}}
-        acl     {{base $dir}} hdr_beg(host) -i   {{base $dir}} 
-        use_backend   {{base $dir}}  if  {{base $dir}}
+{{range $server_dir := lsdir  "/services"}}
+{{$business_dir  := printf  "/services/%s" $server_dir}}
+{{range $dir := lsdir  $business_dir}}
+    {{$domain_dir := printf "%s/%s/"  $business_dir $dir}}
+    {{range $name  := lsdir   $domain_dir}}
+        acl     {{base $name}} hdr_beg(host) -i   {{base $name}} 
+        use_backend   {{base $name}}  if  {{base $name}}
+    {{end}}
+{{end}}
 {{end}}
 
-#######################################################################
-##    acl  is_pay.quakegame.cn    hdr_beg(host)   -i pay.quakegame.cn #
-##    use_backend pay.kuakegame.cn  if is_pay.quakegame.cn            #
-#######################################################################
+backend etcd
+    balance roundrobin
+    fullconn 1024
+    server etcd1 10.10.0.1:2379 check port 2379 inter 300 fall 3
+    server etcd2 10.10.0.3:2379 check port 2379 inter 300 fall 3
+    server etcd3 10.10.0.4:2379 check port 2379 inter 300 fall 3
 
 backend  static
    balance     roundrobin
    server   images   10.10.0.3:80 check 
 
 
-
-{{range $dir := lsdir "/services/web"}}
-backend  {{base $dir }}
-    balance     roundrobin
-   {{$custdir := printf "/services/web/%s/*" $dir}}{{range gets $custdir}}
-    server  {{base .Key}}  {{.Value}}:8888 check
-   {{end}}
+{{range $server_dir := lsdir  "/services"}}
+{{$business_dir  := printf  "/services/%s" $server_dir}}
+{{range $dir := lsdir  $business_dir}}
+    {{$domain_dir := printf "%s/%s/"  $business_dir $dir}}
+    {{range $name  := lsdir   $domain_dir}}
+      {{$server := printf "%s/%s/%s/*" $business_dir $dir $name}}
+backend  {{$name}}        
+    balance   roundrobin
+        {{range gets $server}}
+        server {{base .Key}}  {{.Value}}:4001 check port 4001 inter 300 fall 3
+        {{end}}
+    {{end}}
 {{end}}
+{{end}}
+
+
+
 
 
 
