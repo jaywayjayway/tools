@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-'''  
-author: shenzhiwei
-date:   2016-04-18 09:35:59   
-'''
 from __future__ import unicode_literals
 from optparse import OptionParser
 import etcd
@@ -21,9 +17,11 @@ class ComplexEncoder(json.JSONEncoder):
 class Etcd(object):
     """Configuration with etcd  Provide push, pull function."""
 
-    def __init__(self, host='', port='', *args, **kwargs):
+    def __init__(self, host='', port='', server='',business='',*args, **kwargs):
         self.host = host
         self.port = port
+        self.prefix ='/'.join([server,business])
+        self.check = self.key_check()
 
     @property
     def _conn_etcd(self):
@@ -42,9 +40,9 @@ class Etcd(object):
         domain_info = info 
         for _k,_v  in domain_info.items():
             ip_list = _v.split(',')
-            if  len(_k.split('/')) > 1 :  ###  example   gm.quakegame.cn/server0 ###
+            if  len(_k.split('/')) > 1 :  ###  example   gm.quakegame.cn/server0 
                try:
-                  _out = client.read('/services/web/%s'%(_k))
+                  _out = client.read('/services/%s/%s'%(self.prefix,_k))
                   _out.value = ip_list[0]
                   client.update(_out)
 
@@ -56,14 +54,14 @@ class Etcd(object):
 
             try:
 
-               client.delete('/services/web/%s'%(_k), recursive = True)
+               client.delete('/services/%s/%s'%(self.prefix,_k), recursive = True)
 
             except Exception as e:
                pass
 
             for _i in  range(len(ip_list)):
                 try:
-                    client.set('/services/web/%s/server%s'%(_k,_i),ip_list[_i])
+                    client.set('/services/%s/%s/server%s'%(self.prefix,_k,_i),ip_list[_i])
                 except Exception as e:
                     return_message = {'code': 500, 'message': str(e)}
                     return return_message
@@ -76,7 +74,7 @@ class Etcd(object):
         """ delete domain """
         client = self._conn_etcd
         try:
-            client.delete('/services/web/%s'%(domain), recursive = True)
+            client.delete('/services/%s/%s'%(self.prefix,domain), recursive = True)
 
         except Exception as e:
 
@@ -86,6 +84,18 @@ class Etcd(object):
         return return_message
 
 
+
+    def key_check(self):
+        
+        client = self._conn_etcd
+        try:
+            client.get('/services/%s' % (self.prefix))
+
+            return 
+
+        except Exception as e:
+            
+            return ({'code': 500, 'message': str(e)})
 
     def ip_check(self,ip):
         q = ip.split('.')
@@ -99,12 +109,12 @@ class Etcd(object):
             client = self._conn_etcd
             dom = domain.split() 
             if not  len(dom):
-                domain_directory=client.get("/services/web")
+                domain_directory=client.get("/services/%s" %(self.prefix))
                 for  result  in domain_directory.children:
                     domains.setdefault(result.key,{})
             else:
                 for  d in dom:
-                    domains.setdefault("/services/web/"+d,{})
+                    domains.setdefault("/services/%s/" %(self.prefix)+d,{})
             for _d  in  domains:
                 servers_directory  = client.get(_d)
                 for _s  in  servers_directory.children:
@@ -122,6 +132,8 @@ def ops():
     parser = argparse.ArgumentParser(prog="domainctl")
     parser.add_argument('-H', "--host", action='store', type=str, default='127.0.0.1',help="etcd server ipaddress.[default:127.0.0.1]")
     parser.add_argument('-p', "--port", action='store', type=int, default=2379,help="etcd listen port.[default:2379]")
+    parser.add_argument('-s', "--server", action='store', type=str, default='web',help="kinds of servers. [default:web]")
+    parser.add_argument('-b', "--business", action='store', type=str, default='kugou',help="kinds of business. [default:kugou]")
     group = parser.add_mutually_exclusive_group()
     #group.add_argument('-H', "--host", action='store', type=str, default='127.0.0.1',help="etcd server ipaddress.[default:127.0.0.1]")
     #group.add_argument('-p', "--port", action='store', type=int, default=2379,help="etcd listen port.[default:2379]")
@@ -166,7 +178,13 @@ def main():
     if  not sys.argv[1:]:
         exit("please use  %s -h or --help" %sys.argv[0])
     options  = ops()
-    client=Etcd(options.host,options.port)
+    client=Etcd(options.host,options.port,options.server,options.business)
+        
+    #prefix='/'.joint(['options.server','options.business'])
+    #_check_ = client.key_check(prefix)
+
+    if  client.check:
+        return  json_encode(client.check)
 
     if options.insert and client:
         data = client.set_config(info_to_dic(options.insert))
