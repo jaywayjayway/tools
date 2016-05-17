@@ -288,5 +288,5 @@ def main():
             data = {"code":500,"message":"【%s】 not found " %(options.domain)}
         return json_encode(data)
             
-if __name__ == "__main__":
-    print(main())
+#if __name__ == "__main__":
+#    print(main())
