@@ -147,7 +147,6 @@ server {
 - doaminctl help 
 
 ```
-# domainctl  -h 
 [root@nn1 tools]# domainctl -h 
 usage: domainctl [-h] [-H HOST] [-p PORT] [-P PLATFORM] [-b BUSINESS] [-s]
                  [-d DOMAIN | -D NAME | -i INSERT]
