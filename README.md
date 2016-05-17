@@ -145,9 +145,9 @@ server {
 ```
 
 - doaminctl help 
+
 ```
 # domainctl  -h 
-```
 usage: domainctl [-h] [-H HOST] [-p PORT] [-s SERVER] [-b BUSINESS]
                  [-d DOMAIN | -D NAME | -i INSERT]
 
@@ -166,7 +166,9 @@ optional arguments:
                         add domain ,example: -i 'gm.quakegame.test
                         1.1.1.1,2.2.2.2; oa.quakegame.cn 3.3.3.3,4,4,4,4'
 ``` 
+
 - show all aviable domains 
+
 
 ```
 [root@nn1 tools]# domainctl  -d all | jq 
@@ -189,10 +191,11 @@ optional arguments:
   "code": 200
 }
 
-
-
 ```
+
 - add new domain
+
+
 ```
 [root@nn1 tools]# domainctl  -b kugou   -i  'game.kugou.com 10.10.0.3,10.10.0.4,10.10.0.5'
 {"message": "set success", "code": 200}
