@@ -148,59 +148,97 @@ server {
 
 ```
 # domainctl  -h 
-usage: domainctl [-h] [-H HOST] [-p PORT] [-s SERVER] [-b BUSINESS]
+[root@nn1 tools]# domainctl -h 
+usage: domainctl [-h] [-H HOST] [-p PORT] [-P PLATFORM] [-b BUSINESS] [-s]
                  [-d DOMAIN | -D NAME | -i INSERT]
 
 optional arguments:
   -h, --help            show this help message and exit
   -H HOST, --host HOST  etcd server ipaddress.[default:127.0.0.1]
   -p PORT, --port PORT  etcd listen port.[default:2379]
-  -s SERVER, --server SERVER
-                        kinds of servers. [default:web]
+  -P PLATFORM, --platform PLATFORM
+                        kinds of platform.
   -b BUSINESS, --business BUSINESS
-                        kinds of business. [default:kugou]
+                        kinds of business.
+  -s, --show            show all domains
   -d DOMAIN, --domain DOMAIN
-                        show domain infomation,[ALL|all] show all domains
-  -D NAME, --name NAME  Delete Domain, exaple: -D oa.quakegame.cn
+                        search the domain infomation
+  -D NAME, --name NAME  Delete Domain,example: -D oa.quakegame.cn
   -i INSERT, --insert INSERT
-                        add domain ,example: -i 'gm.quakegame.test
+                        add domain,example: -i 'gm.quakegame.test
                         1.1.1.1,2.2.2.2; oa.quakegame.cn 3.3.3.3,4,4,4,4'
+
 ``` 
 
 - show all aviable domains 
 
 
 ```
-[root@nn1 tools]# domainctl  -d all | jq 
-
+[root@nn1 tools]# domainctl -s  | jq .
 {
   "message": {
-    "/services/web/kugou/pay.kugou.com": {
-      "server0": "10.10.0.3",
-      "server1": "10.10.0.4"
-    },
-    "/services/web/kugou/gm.kugou.com": {
-      "server0": "10.10.0.3",
-      "server1": "10.10.0.4"
-    },
-    "/services/web/kugou/api.kugou.com": {
-      "server0": "10.10.0.3",
-      "server1": "10.10.0.4"
-    }
+    "/services/17kxgame/web/cc.17kxgame.cn": [
+      "1.1.1.1",
+      "1.1.1.12"
+    ],
+    "/services/kugou/web/oa.quakegame.cn": [
+      "1.1.1.4",
+      "1.1.1.5"
+    ],
+    "/services/kugou/web/test.quakgame.cn": [
+      "1.1.1.1",
+      "1.1.1.2"
+    ],
+    "/services/17kxgame/web/dzz.17kxgame.cn": [
+      "1.1.1.1",
+      "1.1.1.2"
+    ]
   },
   "code": 200
 }
 
-```
-
-- add new domain
-
 
 ```
-[root@nn1 tools]# domainctl  -b kugou   -i  'game.kugou.com 10.10.0.3,10.10.0.4,10.10.0.5'
+
+
+- add  a new domain 
+
+```
+[root@nn1 tools]# domainctl  -P 17kxgame -b web -i "add.17kxgame.cn 1.1.1.1,1.1.1.2,1.1.1.3"
 {"message": "set success", "code": 200}
 
 ```
+
+- delete a domain
+
+
+```
+[root@nn1 tools]# domainctl  -P 17kxgame -b web -D dzz.17kxgame.cn
+{"message": "delete  success.", "code": 200}
+
+```
+
+- search the domain 
+
+```
+[root@nn1 tools]# domainctl -d  dzz.17kxgame.cn  | jq . 
+{
+  "message": {
+    "/services/17kxgame/web/dzz.17kxgame.cn": [
+      "1.1.1.1",
+      "1.1.1.2"
+    ]
+  },
+  "code": 200
+}
+[root@nn1 tools]# domainctl -d  www.google.com  | jq . 
+{
+  "message": "【www.google.com】 not found ",
+  "code": 500
+}
+
+```
+
 
 
 
